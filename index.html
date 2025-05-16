@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Poetrypal – Haiku Helper</title>
+  <style>
+    body {
+      font-family: 'Georgia', serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+      background: #fffaf0;
+      color: #333;
+    }
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+    .tagline {
+      font-size: 1rem;
+      color: #888;
+      margin-bottom: 2rem;
+    }
+    .poetry-template-container {
+      width: 100%;
+      max-width: 540px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+    .haiku-line {
+      position: relative;
+      background: #ddd;
+      border-radius: 8px;
+      opacity: 0.6;
+      padding: 0.5rem;
+      min-height: 1.2rem;
+      width: 100%;
+    }
+    .haiku-line[contenteditable] {
+      outline: none;
+      background: #f4f4f4;
+      opacity: 1;
+      font-size: 1rem;
+    }
+    .syllables {
+      margin-top: 1rem;
+      font-weight: bold;
+      font-size: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      align-items: start;
+    }
+    .line-status {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background-color: lightgray;
+      transition: background-color 0.3s ease;
+    }
+    .correct {
+      background-color: mediumseagreen;
+    }
+    .hint {
+      font-size: 0.9rem;
+      color: #666;
+      margin-bottom: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>PoetryPal</h1>
+  <div class="tagline">Your personal poetry companion</div>
+  <div class="hint">Start with a Haiku – 3 lines, 5 / 7 / 5 syllables</div>
+
+  <div class="poetry-template-container" id="poemContainer">
+    <!-- Lines will be dynamically rendered here -->
+  </div>
+
+  <div id="syllableCount" class="syllables"></div>
+
+  <script>
+    const poemTemplates = {
+      haiku: {
+        name: "Haiku",
+        lines: [5, 7, 5]
+      },
+      // future templates like limerick, tanka, etc. can go here
+    };
+
+    const currentTemplate = poemTemplates.haiku;
+    const container = document.getElementById("poemContainer");
+    const syllableCountDisplay = document.getElementById("syllableCount");
+
+    currentTemplate.lines.forEach((count, i) => {
+      const line = document.createElement("div");
+      line.className = "haiku-line";
+      line.contentEditable = true;
+      line.dataset.index = i;
+      container.appendChild(line);
+
+      const status = document.createElement("div");
+      status.className = "line-status";
+      const indicator = document.createElement("div");
+      indicator.className = "indicator";
+      indicator.id = `ind${i + 1}`;
+      status.appendChild(indicator);
+      status.append(`Line ${i + 1}: 0`);
+      syllableCountDisplay.appendChild(status);
+
+      line.addEventListener("input", () => {
+        const text = line.innerText.trim().toLowerCase();
+        const words = text.split(/\s+/);
+        let syllables = 0;
+        words.forEach(word => {
+          const matches = word.match(/[aeiouy]+/g);
+          syllables += matches ? matches.length : 1;
+        });
+        const indicator = document.getElementById(`ind${i + 1}`);
+        if (syllables === count) {
+          indicator.classList.add("correct");
+        } else {
+          indicator.classList.remove("correct");
+        }
+        status.childNodes[1].nodeValue = `Line ${i + 1}: ${syllables}`;
+      });
+    });
+  </script>
+</body>
+</html>
