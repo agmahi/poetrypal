@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Poetrypal – Haiku Helper</title>
+  <title>Poetrypal</title>
   <style>
     body {
       font-family: 'Georgia', serif;
@@ -21,11 +21,24 @@
     .tagline {
       font-size: 1rem;
       color: #888;
-      margin-bottom: 2rem;
+      margin-bottom: 1rem;
+    }
+    .top-bar {
+      width: 100%;
+      max-width: 400px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+    .template-select {
+      font-size: 1rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
     }
     .poetry-template-container {
       width: 100%;
-      max-width: 540px;
+      max-width: 350px;
       background: white;
       border-radius: 12px;
       box-shadow: 0 4px 16px rgba(0,0,0,0.06);
@@ -34,34 +47,22 @@
       flex-direction: column;
       gap: 1.5rem;
     }
-    .haiku-line {
-      position: relative;
-      background: #ddd;
-      border-radius: 8px;
-      opacity: 0.6;
-      padding: 0.5rem;
-      min-height: 1.2rem;
-      width: 100%;
-    }
-    .haiku-line[contenteditable] {
-      outline: none;
-      background: #f4f4f4;
-      opacity: 1;
-      font-size: 1rem;
-    }
-    .syllables {
-      margin-top: 1rem;
-      font-weight: bold;
-      font-size: 1rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-      align-items: start;
-    }
-    .line-status {
+    .line-container {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: 0.75rem;
+      width: 100%;
+    }
+    .haiku-line {
+      background: #f4f4f4;
+      border-radius: 8px;
+      padding: 0.5rem 0.75rem;
+      min-height: 2.5rem;
+      width: 100%;
+      outline: none;
+      font-size: 1rem;
+      white-space: nowrap;
+      overflow-x: auto;
     }
     .indicator {
       width: 12px;
@@ -69,6 +70,7 @@
       border-radius: 50%;
       background-color: lightgray;
       transition: background-color 0.3s ease;
+      flex-shrink: 0;
     }
     .correct {
       background-color: mediumseagreen;
@@ -77,65 +79,102 @@
       font-size: 0.9rem;
       color: #666;
       margin-bottom: 0.5rem;
+      max-width: 540px;
+      text-align: left;
     }
   </style>
 </head>
 <body>
   <h1>PoetryPal</h1>
-  <div class="tagline">Your personal poetry companion</div>
-  <div class="hint">Start with a Haiku – 3 lines, 5 / 7 / 5 syllables</div>
+  <div class="top-bar">
+    <div class="tagline" id="tagline">Start with a Haiku – 3 lines, 5 / 7 / 5 syllables</div>
+    <select id="templateSelector" class="template-select">
+      <option value="haiku">Haiku</option>
+      <option value="limerick">Limerick</option>
+    </select>
+  </div>
 
   <div class="poetry-template-container" id="poemContainer">
     <!-- Lines will be dynamically rendered here -->
   </div>
 
-  <div id="syllableCount" class="syllables"></div>
+  <button id="saveButton" style="margin-top: 1rem; padding: 0.5rem 1rem; font-size: 1rem; border-radius: 8px; background: #4caf50; 
+  color: white; border: none; cursor: pointer;">
+    Save Poem
+  </button>
 
   <script>
     const poemTemplates = {
       haiku: {
         name: "Haiku",
-        lines: [5, 7, 5]
+        lines: [5, 7, 5],
+        description: "Start writing a Haiku – 3 lines, 5 / 7 / 5 syllables"
       },
-      // future templates like limerick, tanka, etc. can go here
+      limerick: {
+        name: "Limerick",
+        lines: [9, 9, 6, 6, 9],
+        description: "Write a Limerick – 5 lines, rhythm AABBA, ~9 / 9 / 6 / 6 / 9 syllables"
+      }
     };
 
-    const currentTemplate = poemTemplates.haiku;
+    const templateSelector = document.getElementById("templateSelector");
+    const tagline = document.getElementById("tagline");
     const container = document.getElementById("poemContainer");
-    const syllableCountDisplay = document.getElementById("syllableCount");
 
-    currentTemplate.lines.forEach((count, i) => {
-      const line = document.createElement("div");
-      line.className = "haiku-line";
-      line.contentEditable = true;
-      line.dataset.index = i;
-      container.appendChild(line);
-
-      const status = document.createElement("div");
-      status.className = "line-status";
-      const indicator = document.createElement("div");
-      indicator.className = "indicator";
-      indicator.id = `ind${i + 1}`;
-      status.appendChild(indicator);
-      status.append(`Line ${i + 1}: 0`);
-      syllableCountDisplay.appendChild(status);
-
-      line.addEventListener("input", () => {
-        const text = line.innerText.trim().toLowerCase();
-        const words = text.split(/\s+/);
-        let syllables = 0;
-        words.forEach(word => {
-          const matches = word.match(/[aeiouy]+/g);
-          syllables += matches ? matches.length : 1;
-        });
-        const indicator = document.getElementById(`ind${i + 1}`);
-        if (syllables === count) {
-          indicator.classList.add("correct");
-        } else {
-          indicator.classList.remove("correct");
-        }
-        status.childNodes[1].nodeValue = `Line ${i + 1}: ${syllables}`;
+    function countSyllables(text) {
+      const words = text.trim().toLowerCase().split(/\s+/);
+      let syllables = 0;
+      words.forEach(word => {
+        const matches = word.match(/[aeiouy]+/g);
+        syllables += matches ? matches.length : 1;
       });
+      return syllables;
+    }
+
+    function renderTemplate(templateKey) {
+      const template = poemTemplates[templateKey];
+      container.innerHTML = "";
+      tagline.textContent = template.description;
+
+      template.lines.forEach((expectedCount, i) => {
+        const lineContainer = document.createElement("div");
+        lineContainer.className = "line-container";
+
+        const line = document.createElement("div");
+        line.className = "haiku-line";
+        line.contentEditable = true;
+        line.dataset.index = i;
+
+        const indicator = document.createElement("div");
+        indicator.className = "indicator";
+        indicator.id = `ind${i + 1}`;
+
+        line.addEventListener("input", () => {
+          const count = countSyllables(line.innerText);
+          if (count === expectedCount) {
+            indicator.classList.add("correct");
+          } else {
+            indicator.classList.remove("correct");
+          }
+        });
+
+        lineContainer.appendChild(line);
+        lineContainer.appendChild(indicator);
+        container.appendChild(lineContainer);
+      });
+    }
+
+    templateSelector.addEventListener("change", (e) => {
+      renderTemplate(e.target.value);
+    });
+
+    renderTemplate("haiku");
+    
+    // Save button functionality
+    document.getElementById("saveButton").addEventListener("click", () => {
+      const lines = [...container.querySelectorAll(".haiku-line")].map(div => div.innerText.trim());
+      const output = lines.join("\n");
+      alert("Your poem:\n\n" + output);
     });
   </script>
 </body>
